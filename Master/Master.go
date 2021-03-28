@@ -36,9 +36,6 @@ var fileMap = make(map[string][]string)//Filename to blocks
 
 var blockMinions = make(map[string][]string)
 
-//var minion1= MinionAddr{"120.0.0.1", 8000}
-//var minion2= MinionAddr{"120.0.0.1", 9000}
-
 
 var minions = map[string]MinionAddr{
 	"1" : MinionAddr{"120.0.0.1", 9000},
@@ -48,7 +45,25 @@ var minions = map[string]MinionAddr{
 }
 
 
+func (m * Master) Read (fileName string, Blocks * []Block) error{
+	var returnBlocks []Block
+	blcks:= fileMap[fileName]
 
+
+	for i:=0; i < len(blcks); i++{
+		minionAddrs := make([]MinionAddr, 0, REPLICATION_FACTOR-1)
+		blockMin := blockMinions[blcks[i]]
+		for j:=0; j< len(blockMin); j++{
+			minionAddrs = append(minionAddrs, minions[blockMin[j]])
+		}
+		tempBlock := Block{blcks[i], minionAddrs}
+		returnBlocks = append(returnBlocks, tempBlock)
+	}
+
+	*Blocks = returnBlocks
+	var err error
+	return err
+}
 
 
 func (m * Master) Write (File FileBlock, Blocks * []Block) error{
@@ -65,7 +80,6 @@ func (m * Master) Write (File FileBlock, Blocks * []Block) error{
 
 
 	*Blocks = tempBlocks
-	fmt.Println("Blocks:", Blocks)
 
 
 	if err != nil{

@@ -34,5 +34,8 @@ func main() {
 	file := FileBlock{"/abc.txt", 2000}
 	client.Call("Master.Write", file , &reply)
 	fmt.Println(reply)
-
+	fmt.Println("_________________________________\n")
+	var reply2 []Block
+	client.Call("Master.Read", "/abc.txt", &reply2)
+	fmt.Println(reply2)
 }
