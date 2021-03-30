@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"math"
@@ -12,6 +13,8 @@ import (
 
 const BLOCK_SIZE = 100
 const REPLICATION_FACTOR = 2
+
+type Master int
 
 type MinionAddr struct{
 	Host string
@@ -29,26 +32,31 @@ type FileBlock struct{
 }
 
 
-type Master int
-
-
 var fileMap = make(map[string][]string)//Filename to blocks
 
-var blockMinions = make(map[string][]string)
-
+var blockMinions = make(map[string][]string) //Block to minionIDs
 
 var minions = map[string]MinionAddr{
 	"1" : MinionAddr{"120.0.0.1", 9000},
 	"2" : MinionAddr{"120.0.0.1", 9001},
 	"3" : MinionAddr{"120.0.0.1", 9002},
-
 }
-
 
 func (m * Master) Read (fileName string, Blocks * []Block) error{
 	var returnBlocks []Block
-	blcks:= fileMap[fileName]
+	var err error
 
+	blcks, exists:= fileMap[fileName]
+
+	if !exists{
+		err = errors.New("File does not exist\n")
+		return err
+	}
+	//Loop across all the blocks containing a file
+	//Get minion ids hosting each blocks
+	//Get minions address from for each block
+	//Create a new block object for each block and
+	// append on an array of Blocks to be returned
 
 	for i:=0; i < len(blcks); i++{
 		minionAddrs := make([]MinionAddr, 0, REPLICATION_FACTOR-1)
@@ -61,13 +69,15 @@ func (m * Master) Read (fileName string, Blocks * []Block) error{
 	}
 
 	*Blocks = returnBlocks
-	var err error
+
 	return err
 }
 
 
 func (m * Master) Write (File FileBlock, Blocks * []Block) error{
 
+	//check if file already exists, delete if does
+	//Probably need to let the user decide
 	_, ok := fileMap[File.Name]
 	if ok {
 		delete(fileMap, File.Name)
@@ -77,14 +87,12 @@ func (m * Master) Write (File FileBlock, Blocks * []Block) error{
 
 
 	tempBlocks, err := allocateBlocks(File, numOfBlocks)
-
+	if err!= nil{
+		panic(err)
+	}
 
 	*Blocks = tempBlocks
 
-
-	if err != nil{
-		fmt.Println(err)
-	}
 	return err
 
 }
@@ -97,7 +105,6 @@ func allocateBlocks(file FileBlock, numOfBlocks int) ([]Block, error){
 		if err!= nil{
 			panic(err)
 		}
-		//minionIds := reflect.ValueOf(minions).Interface().(string)
 
 
 		minionKeys := make([]string, len(minions))
