@@ -16,14 +16,14 @@ const REPLICATION_FACTOR = 2
 
 type Master int
 
-type MinionAddr struct{
+type AddrMinion struct{
 	Host string
 	Port int
 }
 
 type Block struct{
 	BlockId string
-	Minions []MinionAddr
+	Minions []AddrMinion
 }
 
 type FileBlock struct{
@@ -36,10 +36,10 @@ var fileMap = make(map[string][]string)//Filename to blocks
 
 var blockMinions = make(map[string][]string) //Block to minionIDs
 
-var minions = map[string]MinionAddr{
-	"1" : MinionAddr{"120.0.0.1", 9000},
-	"2" : MinionAddr{"120.0.0.1", 9001},
-	"3" : MinionAddr{"120.0.0.1", 9002},
+var minions = map[string]AddrMinion{
+	"1" : AddrMinion{"120.0.0.1", 9000},
+	"2" : AddrMinion{"120.0.0.1", 9001},
+	"3" : AddrMinion{"120.0.0.1", 9002},
 }
 
 func (m * Master) Read (fileName string, Blocks * []Block) error{
@@ -59,12 +59,12 @@ func (m * Master) Read (fileName string, Blocks * []Block) error{
 	// append on an array of Blocks to be returned
 
 	for i:=0; i < len(blcks); i++{
-		minionAddrs := make([]MinionAddr, 0, REPLICATION_FACTOR-1)
+		AddrMinions := make([]AddrMinion, 0, REPLICATION_FACTOR-1)
 		blockMin := blockMinions[blcks[i]]
 		for j:=0; j< len(blockMin); j++{
-			minionAddrs = append(minionAddrs, minions[blockMin[j]])
+			AddrMinions = append(AddrMinions, minions[blockMin[j]])
 		}
-		tempBlock := Block{blcks[i], minionAddrs}
+		tempBlock := Block{blcks[i], AddrMinions}
 		returnBlocks = append(returnBlocks, tempBlock)
 	}
 
@@ -117,14 +117,14 @@ func allocateBlocks(file FileBlock, numOfBlocks int) ([]Block, error){
 
 		minionIDs := sample(minionKeys, REPLICATION_FACTOR)
 
-		minionAddrs := make([]MinionAddr, 0, REPLICATION_FACTOR-1)
+		AddrMinions := make([]AddrMinion, 0, REPLICATION_FACTOR-1)
 
 
 
 
 		for j:=0; j < len(minionIDs); j++ {
 			if value, ok := minions[minionIDs[j]]; ok {
-				minionAddrs = append(minionAddrs, value)
+				AddrMinions = append(AddrMinions, value)
 			} else {
 				fmt.Println("key not found")
 			}
@@ -133,7 +133,7 @@ func allocateBlocks(file FileBlock, numOfBlocks int) ([]Block, error){
 		blockMinions[blockId] = minionIDs
 		fileMap[file.Name] = append(fileMap[file.Name], blockId)
 
-		tempBlock := Block{blockId, minionAddrs}
+		tempBlock := Block{blockId, AddrMinions}
 
 		returnBlocks = append(returnBlocks, tempBlock)
 

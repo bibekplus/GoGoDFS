@@ -5,16 +5,19 @@ import (
 	"fmt"
 	"log"
 	"net/rpc"
+	"os"
 	"reflect"
 )
 
-type MinionAddr struct{
+const BLOCK_SIZE = 100
+
+type AddrMinion struct{
 	Host string
 	Port int
 }
 type Block struct{
 	BlockId string
-	Minions []MinionAddr
+	Minions []AddrMinion
 }
 
 type FileBlock struct{
@@ -22,40 +25,70 @@ type FileBlock struct{
 	Size int
 }
 
-
-
-
-/*def get(master, file):
-file_table = master.read(file)
-if not file_table:
-logging.info("file not found")
-return
-
-for block in file_table:
-for host, port in block['block_addr']:
-try:
-con = rpyc.connect(host, port=port).root
-data = con.get(block['block_id'])
-if data:
-sys.stdout.write(data)
-break
-except Exception as e:
-continue
-else:
-logging.error("No blocks found. Possibly a corrupt file")
-*/
-
-func get(client *rpc.Client, fileName string) ([]Block, error){
-	var fileBlocks []Block
-	xType := reflect.TypeOf(client)
-	fmt.Println(xType)
-	err := client.Call("Master.Read", fileName, &fileBlocks)
-	if err != nil{
-		fmt.Println("File not found")
-		return  nil, err
+func check(e error){
+	if e!= nil{
+		panic(e)
 	}
-	return fileBlocks, err
 }
+
+//
+//
+//func get(client *rpc.Client, fileName string) ([]Block, error){
+//	var fileBlocks []Block
+//	xType := reflect.TypeOf(client)
+//	fmt.Println(xType)
+//	err := client.Call("Master.Read", fileName, &fileBlocks)
+//	if err != nil{
+//		fmt.Println("File not found")
+//		return  nil, err
+//	}
+//
+//	for _, blck := range fileBlocks{
+//		//id := blck.BlockId
+//		minions:= blck.Minions
+//		for _, min := range minions{
+//			minAddress := fmt.Sprintf("%s:%d", min.Host, min.Port)
+//			conn, err := rpc.DialHTTP("tcp", minAddress)
+//			if err != nil {
+//				log.Fatal("Connection error: ", err)
+//			}
+//			//client.Call("Minion.get", blck.BlockId , &reply)
+//		fmt.Println(conn)
+//		}
+//	}
+//	fmt.Println("-------------------")
+//	return fileBlocks, err
+//}
+
+
+
+func put(client *rpc.Client, fileSource string, fileName string) error {
+	info, err := os.Stat(fileSource)
+	if err != nil{
+		return err
+	}
+	size := int(info.Size())
+	f, err := os.Open(fileSource)
+	check(err)
+	file := FileBlock{fileName, size}
+	var fileBlocks []Block
+	client.Call("Master.Write", file , &fileBlocks)
+	for _, blck := range fileBlocks {
+		data := make([]byte, BLOCK_SIZE)
+		_, err := f.Read(data)
+		check(err)
+		id := blck.BlockId
+		minion := blck.Minions[0]
+		minions := blck.Minions[1:]
+		conn, err := rpc.DialHTTP("tcp", minion)
+		conn.Call("put", id, data, minions)
+
+	}
+
+
+	return err
+}
+
 
 func main() {
 
@@ -75,11 +108,13 @@ func main() {
 
 	//fmt.Println(reply)
 	fmt.Println("_________________________________\n")
-	var reply2 []Block
+	//var reply2 []Block
 	//err = client.Call("Master.Read", "/abc.txt", &reply2)
-	reply2, err = get(client, "/abc.txt")
-	if err != nil {
-		log.Fatal("Error: ", err)
-	}
-	fmt.Println(reply2)
+	//reply2, err = get(client, "/abc.txt")
+	//if err != nil {
+	//	log.Fatal("Error: ", err)
+	//}
+	//fmt.Println(reply2)
+
+	err = put(client, "./a.txt", "a.txt")
 }
