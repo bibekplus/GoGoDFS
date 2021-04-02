@@ -37,9 +37,9 @@ var fileMap = make(map[string][]string)//Filename to blocks
 var blockMinions = make(map[string][]string) //Block to minionIDs
 
 var minions = map[string]AddrMinion{
-	"1" : AddrMinion{"120.0.0.1", 9000},
-	"2" : AddrMinion{"120.0.0.1", 9001},
-	"3" : AddrMinion{"120.0.0.1", 9002},
+	"1" : AddrMinion{"localhost", 9000},
+	"2" : AddrMinion{"localhost", 9001},
+	"3" : AddrMinion{"localhost", 9002},
 }
 
 func (m * Master) Read (fileName string, Blocks * []Block) error{
@@ -82,9 +82,8 @@ func (m * Master) Write (File FileBlock, Blocks * []Block) error{
 	if ok {
 		delete(fileMap, File.Name)
 	}
-
-	numOfBlocks := int(math.Ceil(float64(File.Size / BLOCK_SIZE)))
-
+	size := float64(File.Size)
+	numOfBlocks := int(math.Ceil(size/BLOCK_SIZE))
 
 	tempBlocks, err := allocateBlocks(File, numOfBlocks)
 	if err!= nil{

@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/rpc"
 	"os"
-	"reflect"
 )
 
 const BLOCK_SIZE = 100
@@ -23,6 +22,12 @@ type Block struct{
 type FileBlock struct{
 	Name string
 	Size int
+}
+
+type MessageToMinion struct{
+	BlockId string
+	Data []byte
+	Minions [] AddrMinion
 }
 
 func check(e error){
@@ -61,7 +66,6 @@ func check(e error){
 //}
 
 
-
 func put(client *rpc.Client, fileSource string, fileName string) error {
 	info, err := os.Stat(fileSource)
 	if err != nil{
@@ -80,8 +84,18 @@ func put(client *rpc.Client, fileSource string, fileName string) error {
 		id := blck.BlockId
 		minion := blck.Minions[0]
 		minions := blck.Minions[1:]
-		conn, err := rpc.DialHTTP("tcp", minion)
-		conn.Call("put", id, data, minions)
+
+		message := MessageToMinion{id, data, minions}
+		reply := 0
+		minAddress := fmt.Sprintf("%s:%d", minion.Host, minion.Port)
+		fmt.Println(minAddress)
+		conn, err := rpc.DialHTTP("tcp", minAddress)
+		fmt.Println(err)
+		err = conn.Call("Minion.Put", message, &reply)
+		fmt.Println(reply)
+		if err != nil{
+			return err
+		}
 
 	}
 
@@ -92,7 +106,7 @@ func put(client *rpc.Client, fileSource string, fileName string) error {
 
 func main() {
 
-	var reply []Block
+	//var reply []Block
 
 	// Create a TCP connection to localhost on port 8000
 	client, err := rpc.DialHTTP("tcp", "localhost:8000")
@@ -100,11 +114,14 @@ func main() {
 		log.Fatal("Connection error: ", err)
 	}
 
-	file := FileBlock{"/abc.txt", 2000}
-	client.Call("Master.Write", file , &reply)
+	if os.Args[1] == "put"{
+		put(client, os.Args[2], os.Args[3])
+	}
+	//file := FileBlock{"/abc.txt", 2000}
+	//client.Call("Master.Write", file , &reply)
 
-	xType := reflect.TypeOf(client)
-	fmt.Println(xType)
+	//xType := reflect.TypeOf(client)
+	//fmt.Println(xType)
 
 	//fmt.Println(reply)
 	fmt.Println("_________________________________\n")
@@ -116,5 +133,5 @@ func main() {
 	//}
 	//fmt.Println(reply2)
 
-	err = put(client, "./a.txt", "a.txt")
+	//err = put(client, "./a.txt", "a.txt")
 }
