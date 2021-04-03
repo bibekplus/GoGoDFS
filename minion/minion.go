@@ -48,10 +48,47 @@ func (m * Minion) Put (message MessageToMinion, reply * int) error {
 	if err != nil{
 		return err
 	}
+	if len(message.Minions) > 0{
+		msg := MessageToMinion{message.BlockId, message.Data, message.Minions}
+		forward(msg)
+	}
 
 	*reply = 1
 	return err
 }
+
+func (m * Minion) Get (blockId string, block * []byte) error{
+	fileSource := filepath.Join(DataDir, string(blockId))
+	if _, err := os.Stat(fileSource);os.IsNotExist(err){
+		return err
+	}
+	f, err := os.Open(fileSource)
+	var reply []byte
+	_, err = f.Read(reply)
+	if err != nil{
+		return err
+	}
+	*block = reply
+	return err
+}
+
+func forward (message MessageToMinion) error {
+	nextMin := message.Minions[0]
+	minions := message.Minions[1:]
+	minAddress := fmt.Sprintf("%s:%d", nextMin.Host, nextMin.Port)
+	conn, err := rpc.DialHTTP("tcp", minAddress)
+	if err!= nil{
+		return err
+	}
+	reply := 0
+	msg := MessageToMinion{message.BlockId, message.Data, minions}
+	err = conn.Call("Minion.Put", msg, &reply)
+	fmt.Println(reply)
+	return err
+}
+
+
+
 
 func main() {
 
