@@ -36,34 +36,32 @@ func check(e error){
 	}
 }
 
-//
-//
-//func get(client *rpc.Client, fileName string) ([]Block, error){
-//	var fileBlocks []Block
-//	xType := reflect.TypeOf(client)
-//	fmt.Println(xType)
-//	err := client.Call("Master.Read", fileName, &fileBlocks)
-//	if err != nil{
-//		fmt.Println("File not found")
-//		return  nil, err
-//	}
-//
-//	for _, blck := range fileBlocks{
-//		//id := blck.BlockId
-//		minions:= blck.Minions
-//		for _, min := range minions{
-//			minAddress := fmt.Sprintf("%s:%d", min.Host, min.Port)
-//			conn, err := rpc.DialHTTP("tcp", minAddress)
-//			if err != nil {
-//				log.Fatal("Connection error: ", err)
-//			}
-//			//client.Call("Minion.get", blck.BlockId , &reply)
-//		fmt.Println(conn)
-//		}
-//	}
-//	fmt.Println("-------------------")
-//	return fileBlocks, err
-//}
+
+
+func get(client *rpc.Client, fileName string) ([]Block, error){
+	var fileBlocks []Block
+	var reply []byte
+	err := client.Call("Master.Read", fileName, &fileBlocks)
+	if err != nil{
+		fmt.Println("File not found")
+		return  nil, err
+	}
+	for _, blck := range fileBlocks{
+		//id := blck.BlockId
+		minions:= blck.Minions
+		for _, min := range minions{
+			minAddress := fmt.Sprintf("%s:%d", min.Host, min.Port)
+			conn, err := rpc.DialHTTP("tcp", minAddress)
+			if err != nil {
+				log.Fatal("Connection error: ", err)
+			}
+			conn.Call("Minion.Get", blck.BlockId , &reply)
+			os.Stdout.Write(reply)
+			break
+		}
+	}
+	return fileBlocks, err
+}
 
 
 func put(client *rpc.Client, fileSource string, fileName string) error {
@@ -92,7 +90,6 @@ func put(client *rpc.Client, fileSource string, fileName string) error {
 		conn, err := rpc.DialHTTP("tcp", minAddress)
 		fmt.Println(err)
 		err = conn.Call("Minion.Put", message, &reply)
-		fmt.Println(reply)
 		if err != nil{
 			return err
 		}
@@ -116,6 +113,9 @@ func main() {
 
 	if os.Args[1] == "put"{
 		put(client, os.Args[2], os.Args[3])
+	}
+	if os.Args[1] == "get"{
+		get(client, os.Args[2])
 	}
 	//file := FileBlock{"/abc.txt", 2000}
 	//client.Call("Master.Write", file , &reply)

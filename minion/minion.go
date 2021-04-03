@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 )
+const BLOCK_SIZE = 100
 
 type Minion int
 
@@ -63,7 +64,7 @@ func (m * Minion) Get (blockId string, block * []byte) error{
 		return err
 	}
 	f, err := os.Open(fileSource)
-	var reply []byte
+	reply := make([]byte, BLOCK_SIZE)
 	_, err = f.Read(reply)
 	if err != nil{
 		return err
@@ -83,7 +84,6 @@ func forward (message MessageToMinion) error {
 	reply := 0
 	msg := MessageToMinion{message.BlockId, message.Data, minions}
 	err = conn.Call("Minion.Put", msg, &reply)
-	fmt.Println(reply)
 	return err
 }
 

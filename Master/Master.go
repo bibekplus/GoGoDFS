@@ -104,8 +104,6 @@ func allocateBlocks(file FileBlock, numOfBlocks int) ([]Block, error){
 		if err!= nil{
 			panic(err)
 		}
-
-
 		minionKeys := make([]string, len(minions))
 
 		i := 0
